@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SheetService {
-  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbw8YaS01il6eloEcKpxOUN7_HDxANf_lkj6oY1nFRKT-ZEVRqG4yzElpLku9sVVhboKcQ/exec";
+  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbyw7arL_36RsxhrzLnmFDJlv1t8yRN0w3HZCpZ_Q1RIQwiS-f3eNTR8ajbUmHng48_Ckg/exec";
 
   static Future<List<Map<String, dynamic>>> fetchSheetData(String sheetName, {bool forceRefresh = false}) async {
     try {

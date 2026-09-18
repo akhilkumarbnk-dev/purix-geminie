@@ -11,25 +11,30 @@ class LoginScreen extends StatelessWidget {
       final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
       final GoogleSignInAccount? account = await googleSignIn.signIn();
 
-      final userName = account?.displayName ?? 'Student';
-      final userEmail = account?.email ?? '';
+      if (account != null) {
+        final userName = account.displayName ?? 'Student';
+        final userEmail = account.email;
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_name', userName);
-      await prefs.setString('user_email', userEmail);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_name', userName);
+        await prefs.setString('user_email', userEmail);
+        await prefs.setBool('is_logged_in', true); // Essential for direct dashboard entry
 
-      if (!context.mounted) return;
+        if (!context.mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ClassScreen(userName: userName),
-        ),
-      );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ClassScreen(userName: userName),
+          ),
+        );
+      }
     } catch (error) {
-      // अगर साइन-इन कैंसिल हो या एरर आए, तो स्मूथ अनुभव के लिए आगे बढ़ने दें
+      // Agar sign-in cancel ho ya error aaye, to smooth experience ke liye aage badhne dein
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_name', 'Student');
+      await prefs.setString('user_email', 'N/A');
+      await prefs.setBool('is_logged_in', true); // Bypass mode me bhi status save karein
 
       if (!context.mounted) return;
 
