@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
@@ -16,45 +16,25 @@ class PdfViewerScreen extends StatefulWidget {
 }
 
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  // Drive link se direct File ID nikal kar Clean Preview Link banana
-  String _getCleanPreviewLink(String url) {
-    String cleanUrl = url.trim();
-    if (cleanUrl.contains('drive.google.com')) {
-      // Regex to extract exactly the 25+ character Google Drive File ID
-      final regExp = RegExp(r'[-\w]{25,}');
-      final match = regExp.firstMatch(cleanUrl);
-      if (match != null) {
-        // Ye line ensure karegi ki PDF hamesha bina sign-in ke preview mode me khule
-        return 'https://drive.google.com/file/d/${match.group(0)}/preview';
-      }
-    }
-    return cleanUrl;
-  }
+  late String _directPdfUrl;
 
   @override
   void initState() {
     super.initState();
-    
-    final finalUrl = _getCleanPreviewLink(widget.pdfUrl);
+    _directPdfUrl = _getDirectDownloadLink(widget.pdfUrl);
+  }
 
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF070B14))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (String url) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(finalUrl));
+  String _getDirectDownloadLink(String url) {
+    String cleanUrl = url.trim();
+    if (cleanUrl.contains('drive.google.com')) {
+      final regExp = RegExp(r'[-\w]{25,}');
+      final match = regExp.firstMatch(cleanUrl);
+      if (match != null) {
+        String fileId = match.group(0)!;
+        return 'https://drive.google.com/uc?export=download&id=$fileId';
+      }
+    }
+    return cleanUrl;
   }
 
   @override
@@ -77,20 +57,21 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          // App ke andar WebView render karega (Bina Chrome ke)
-          WebViewWidget(controller: _controller),
-          
-          // Jab tak PDF load ho raha hai, tab tak Neon Loader dikhega
-          if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(
-                color: neonCyan,
-                strokeWidth: 3,
-              ),
-            ),
-        ],
+      body: SfPdfViewer.network(
+        _directPdfUrl,
+        canShowScrollHead: false,
+        canShowScrollStatus: true,
+        enableDoubleTapZooming: true,
+        pageLayoutMode: PdfPageLayoutMode.continuous,
+        onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+          debugPrint('PDF Loaded Successfully!');
+        },
+        onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+          debugPrint('PDF Load Failed: ${details.error}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to load PDF. Check Drive share link.')),
+          );
+        },
       ),
     );
   }
