@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/sheet_service.dart';
+import 'pdf_viewer_screen.dart';
 
 class FreeContentScreen extends StatefulWidget {
   final String selectedClass;
@@ -23,9 +23,13 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
 
   Future<void> _fetchFreeContent() async {
     try {
-      final sheetName = "${widget.selectedClass.replaceAll('Class ', '')} Notes";
+      // Class ke hisab se exact sheet ka naam set karna (e.g. '10th Notes')
+      String prefix = widget.selectedClass.contains("9") ? "9th" : widget.selectedClass.contains("10") ? "10th" : "8th";
+      final sheetName = "$prefix Notes";
+      
       final data = await SheetService.fetchSheetData(sheetName);
 
+      // Notes sheet me se sirf unhe filter karna jinka Access Type "FREE" hai
       final freeFiltered = data.where((item) {
         final access = (item['Access Type'] ?? item['Is-free'] ?? item['is_free'] ?? '').toString().trim();
         return access.toUpperCase() == 'FREE';
@@ -44,39 +48,25 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
     }
   }
 
-  void _openPdf(String url) async {
-    if (url.isEmpty || url == 'N/A') {
-      if (!mounted) return;
+  void _openPdf(String url, String title) {
+    // STRICT CHECK: Agar URL khali h, N/A h, ya usme http nahi h, to mana kar do
+    if (url.trim().isEmpty || url.trim().toUpperCase() == 'N/A' || !url.contains('http')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF link not available.')),
+        const SnackBar(content: Text('PDF link not available for this resource.')),
       );
       return;
     }
-
-    String finalUrl = url;
-    if (url.contains('drive.google.com') && url.contains('/view')) {
-      finalUrl = finalUrl.replaceAll('/view?usp=sharing', '/preview').replaceAll('/view', '/preview');
-    }
-
-    final uri = Uri.parse(finalUrl);
-    try {
-      final launched = await canLaunchUrl(uri);
-      if (!mounted) return;
-
-      if (launched) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open PDF link.')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error opening PDF.')),
-      );
-    }
+    
+    // Naye PDF Viewer me bhej dein
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewerScreen(
+          pdfUrl: url.trim(),
+          title: title,
+        ),
+      ),
+    );
   }
 
   @override
@@ -96,8 +86,9 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
           : _freeItems.isEmpty
               ? const Center(
                   child: Text(
-                    'No Free Content Available Yet.',
-                    style: TextStyle(color: Colors.white70, fontSize: 13, fontFamily: 'monospace'),
+                    'No Free Content Available Yet.\n(Ensure Google Sheet has "Access Type" = "FREE")',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white54, fontSize: 13, fontFamily: 'monospace'),
                   ),
                 )
               : ListView.builder(
@@ -107,7 +98,11 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
                     final item = _freeItems[index];
                     final chapterName = item['Chapter'] ?? item['chapter'] ?? 'Free Resource';
                     final subjectName = item['Subject'] ?? item['subject'] ?? 'General';
-                    final pdfLink = item['Drive-link-hin'] ?? item['Drive-link-eng'] ?? '';
+                    
+                    // PDF link uthana
+                    final pdfLinkHin = item['Drive-link-hin'] ?? item['Drive_link_hin'] ?? '';
+                    final pdfLinkEng = item['Drive-link-eng'] ?? item['Drive_link_eng'] ?? '';
+                    final pdfLink = pdfLinkEng.isNotEmpty ? pdfLinkEng : pdfLinkHin;
 
                     return Card(
                       color: const Color(0xFF0B111E),
@@ -115,7 +110,7 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: neonCyan.withValues(alpha: 0.3), width: 1),
+                        side: BorderSide(color: neonCyan.withOpacity(0.3), width: 1),
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -129,7 +124,7 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
                         ),
                         subtitle: Text(
                           'Subject: $subjectName (FREE ACCESS)',
-                          style: TextStyle(color: neonCyan.withValues(alpha: 0.8), fontSize: 11, fontFamily: 'monospace'),
+                          style: TextStyle(color: neonCyan.withOpacity(0.8), fontSize: 11, fontFamily: 'monospace'),
                         ),
                         trailing: ElevatedButton(
                           style: ElevatedButton.styleFrom(
@@ -138,7 +133,7 @@ class _FreeContentScreenState extends State<FreeContentScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
-                          onPressed: () => _openPdf(pdfLink),
+                          onPressed: () => _openPdf(pdfLink, chapterName),
                           child: const Text('View PDF', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         ),
                       ),
