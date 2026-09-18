@@ -23,15 +23,16 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   void initState() {
     super.initState();
     
-    // Google Drive share link ko securely 'Preview' mode me convert karna
+    // Drive link ko direct preview me convert karna
     String finalUrl = widget.pdfUrl.trim();
-    if (finalUrl.contains('drive.google.com') && finalUrl.contains('/view')) {
+    if (finalUrl.contains('drive.google.com')) {
       finalUrl = finalUrl.replaceAll('/view?usp=sharing', '/preview').replaceAll('/view', '/preview');
     }
 
-    // WebView Initialize karna
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      // 🚀 YAHI WOH LINE HAI JISSE DIRECT PDF KHULEGA BINA LOGIN KE
+      ..setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
       ..setBackgroundColor(const Color(0xFF070B14))
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -62,7 +63,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
         ),
       ),
-      // App ke andar hi secure Google Drive PDF preview dikhana
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),

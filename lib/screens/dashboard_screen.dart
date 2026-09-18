@@ -49,6 +49,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       currentName = prefs.getString('user_name') ?? widget.userName;
     });
 
+    // 🚀 NAYA FIX: Background Auto-Sync (Bina popup khule Email aur Status update karega)
+    if (currentPhone.isNotEmpty && currentName.toLowerCase() != 'student') {
+      SheetService.syncUserProfile(
+        name: currentName,
+        phone: currentPhone,
+        email: currentEmail.isNotEmpty ? currentEmail : "N/A",
+        selectedClass: currentClass,
+      ).then((sub) {
+        if (mounted) {
+          prefs.setString('user_sub', sub);
+          setState(() {
+            subscriptionStatus = sub;
+          });
+        }
+      });
+    }
+
     // STRICT CHECK: Agar phone khali h ya name 'Student' h, to popup open hoga
     if (currentPhone.isEmpty || currentName.isEmpty || currentName.toLowerCase() == 'student') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
