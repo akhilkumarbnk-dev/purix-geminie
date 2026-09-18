@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SheetService {
   // ⚠️ YAHAN APNA NAYA GOOGLE APP SCRIPT URL DAALEIN ⚠️
-  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbxK1VCSevdszPsaLgF-Gmy6wbERJ15ZI9SrK3SB7bx25teupu8ErdLV0bT5H_2R329X/exec";
+  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbzbqP0U7MXiT2_oaz44YQY9m8S6q2ZoHDldOPBMXmJB58ccyHG8d4lHzW4eme5FivKgxw/exec";
 
   static Future<List<Map<String, dynamic>>> fetchSheetData(String sheetName, {bool forceRefresh = false}) async {
     try {
