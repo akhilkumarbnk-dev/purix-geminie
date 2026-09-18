@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SheetService {
-  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbyw7arL_36RsxhrzLnmFDJlv1t8yRN0w3HZCpZ_Q1RIQwiS-f3eNTR8ajbUmHng48_Ckg/exec";
+  // ⚠️ YAHAN APNA NAYA GOOGLE APP SCRIPT URL DAALEIN ⚠️
+  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbzSciFB_a0EfNSroQW0tPwcNdbYyxofBKR_CUhUoiDy7ABQDunrtCDUqozd-2BTiMjR8w/exec";
 
   static Future<List<Map<String, dynamic>>> fetchSheetData(String sheetName, {bool forceRefresh = false}) async {
     try {
@@ -21,34 +22,44 @@ class SheetService {
         }
       }
 
-      final response = await http.get(Uri.parse('$scriptUrl?sheet=${Uri.encodeComponent(sheetName)}'));
-      if (response.statusCode == 200 || response.statusCode == 302) {
-        await prefs.setString(cacheKey, response.body);
+      final response = await http.get(Uri.parse("$scriptUrl?sheet=$sheetName"));
+      if (response.statusCode == 200) {
+        final data = List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        await prefs.setString(cacheKey, jsonEncode(data));
         await prefs.setString(timeKey, DateTime.now().toIso8601String());
-        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        return data;
       }
-      return [];
     } catch (e) {
-      final prefs = await SharedPreferences.getInstance();
-      final cachedString = prefs.getString('cache_data_$sheetName');
-      if (cachedString != null) return List<Map<String, dynamic>>.from(jsonDecode(cachedString));
       return [];
     }
+    return [];
   }
 
-  static Future<String> syncUserProfile({required String name, required String phone, required String email, required String selectedClass}) async {
+  // Naya Sync Function jo Email aur PRO status ko 100% handle karega
+  static Future<String> syncUserProfile({
+    required String name,
+    required String phone,
+    required String email, 
+    required String selectedClass,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse(scriptUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"name": name, "phone": phone, "email": email, "selected_class": selectedClass}),
+        body: jsonEncode({
+          "name": name,
+          "phone": phone,
+          "email": email, // Ab Email Google Sheet tak jayega
+          "selected_class": selectedClass,
+        }),
       );
+      
       if (response.statusCode == 200 || response.statusCode == 302) {
-        return jsonDecode(response.body)["subscription"] ?? "FREE";
+        final data = jsonDecode(response.body);
+        return data['subscription'] ?? 'FREE'; // Yahan se PRO wapas app me aayega
       }
-      return "FREE";
     } catch (e) {
-      return "FREE";
+      return 'FREE';
     }
+    return 'FREE';
   }
 }

@@ -19,20 +19,28 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
 
+  // Drive link se direct File ID nikal kar Clean Preview Link banana
+  String _getCleanPreviewLink(String url) {
+    String cleanUrl = url.trim();
+    if (cleanUrl.contains('drive.google.com')) {
+      final regExp = RegExp(r'[-\w]{25,}');
+      final match = regExp.firstMatch(cleanUrl);
+      if (match != null) {
+        // Ye line ensure karegi ki PDF hamesha bina sign-in ke preview mode me khule
+        return 'https://drive.google.com/file/d/${match.group(0)}/preview';
+      }
+    }
+    return cleanUrl;
+  }
+
   @override
   void initState() {
     super.initState();
     
-    // Drive link ko direct preview me convert karna
-    String finalUrl = widget.pdfUrl.trim();
-    if (finalUrl.contains('drive.google.com')) {
-      finalUrl = finalUrl.replaceAll('/view?usp=sharing', '/preview').replaceAll('/view', '/preview');
-    }
+    final finalUrl = _getCleanPreviewLink(widget.pdfUrl);
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      // 🚀 YAHI WOH LINE HAI JISSE DIRECT PDF KHULEGA BINA LOGIN KE
-      ..setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
       ..setBackgroundColor(const Color(0xFF070B14))
       ..setNavigationDelegate(
         NavigationDelegate(
