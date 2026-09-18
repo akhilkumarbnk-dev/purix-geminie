@@ -66,8 +66,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     }
 
-    // STRICT CHECK: Agar phone khali h ya name 'Student' h, to popup open hoga
-    if (currentPhone.isEmpty || currentName.isEmpty || currentName.toLowerCase() == 'student') {
+    // STRICT CHECK: Agar phone khali h, name 'Student' h, ya email 'N/A' h to popup open hoga
+    if (currentPhone.isEmpty || currentName.isEmpty || currentName.toLowerCase() == 'student' || currentEmail.isEmpty || currentEmail == 'N/A') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _showProfileDialog(isMandatory: true);
@@ -80,6 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Agar name 'Student' hai to box khali dikhaye taaki user apna naam type kare
     final nameCtrl = TextEditingController(text: currentName.toLowerCase() == 'student' ? '' : currentName);
     final phoneCtrl = TextEditingController(text: currentPhone);
+    final emailCtrl = TextEditingController(text: currentEmail == 'N/A' ? '' : currentEmail);
     const neonGold = Color(0xFFFFD700);
 
     showDialog(
@@ -94,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               side: const BorderSide(color: neonGold, width: 1.5),
             ),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(22),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -117,7 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Strict Validation: Valid Name and 10-digit WhatsApp/Mobile Number are mandatory to access modules.",
+                    "Strict Validation: Valid Name, Email, and 10-digit Mobile Number are mandatory to access modules.",
                     style: TextStyle(color: Colors.white70, fontSize: 11),
                   ),
                   const SizedBox(height: 18),
@@ -128,6 +129,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       labelText: "Cadet Name (Mandatory)",
                       labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
                       prefixIcon: const Icon(Icons.person, color: neonGold, size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFF101726),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Colors.white12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: neonGold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: "Email Address (Mandatory)",
+                      labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+                      prefixIcon: const Icon(Icons.email, color: neonGold, size: 20),
                       filled: true,
                       fillColor: const Color(0xFF101726),
                       enabledBorder: OutlineInputBorder(
@@ -174,26 +196,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onPressed: () async {
                         final enteredName = nameCtrl.text.trim();
                         final enteredPhone = phoneCtrl.text.trim();
+                        final enteredEmail = emailCtrl.text.trim();
 
                         // Strict Validation checks
-                        if (enteredName.isEmpty || enteredName.toLowerCase() == 'student' || enteredPhone.length < 10) {
+                        if (enteredName.isEmpty || enteredName.toLowerCase() == 'student' || enteredPhone.length < 10 || enteredEmail.isEmpty) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Error: Please enter your real name and a 10-digit number.")),
+                            const SnackBar(content: Text("Error: Name, Email, and 10-digit number are mandatory.")),
                           );
                           return;
                         }
 
                         final prefs = await SharedPreferences.getInstance();
-                        final savedEmail = prefs.getString('user_email') ?? 'N/A';
                         await prefs.setString('user_name', enteredName);
                         await prefs.setString('user_phone', enteredPhone);
+                        await prefs.setString('user_email', enteredEmail);
 
                         if (!mounted) return;
                         setState(() {
                           currentName = enteredName;
                           currentPhone = enteredPhone;
-                          currentEmail = savedEmail;
+                          currentEmail = enteredEmail;
                         });
 
                         if (!dialogContext.mounted) return;
@@ -202,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         final sub = await SheetService.syncUserProfile(
                           name: enteredName,
                           phone: enteredPhone,
-                          email: currentEmail.isNotEmpty ? currentEmail : "N/A",
+                          email: enteredEmail,
                           selectedClass: currentClass,
                         );
 
@@ -422,7 +445,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ListTile(
                   leading: const Icon(Icons.edit, color: neonCyan),
                   title: const Text('Edit Cadet Details', style: TextStyle(color: Colors.white, fontSize: 13)),
-                  subtitle: const Text('Update phone or name', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  subtitle: const Text('Update phone, email or name', style: TextStyle(color: Colors.white54, fontSize: 11)),
                   trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
                   onTap: () {
                     Navigator.pop(sheetContext);

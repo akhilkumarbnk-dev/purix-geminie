@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SheetService {
   // ⚠️ YAHAN APNA NAYA GOOGLE APP SCRIPT URL DAALEIN ⚠️
-  static const String scriptUrl = "https://script.google.com/macros/s/AKfycbzSciFB_a0EfNSroQW0tPwcNdbYyxofBKR_CUhUoiDy7ABQDunrtCDUqozd-2BTiMjR8w/exec";
+  static const String scriptUrl = "YOUR_NEW_SCRIPT_URL_HERE";
 
   static Future<List<Map<String, dynamic>>> fetchSheetData(String sheetName, {bool forceRefresh = false}) async {
     try {
@@ -35,7 +35,7 @@ class SheetService {
     return [];
   }
 
-  // Naya Sync Function jo Email aur PRO status ko 100% handle karega
+  // 🚀 FOOLPROOF SYNC: Ye pehle data bhejega, fir wapas confirm karke PRO status layega
   static Future<String> syncUserProfile({
     required String name,
     required String phone,
@@ -43,19 +43,28 @@ class SheetService {
     required String selectedClass,
   }) async {
     try {
-      final response = await http.post(
+      // 1. Data Sheet par bhejna (Email ke sath)
+      await http.post(
         Uri.parse(scriptUrl),
         body: jsonEncode({
           "name": name,
           "phone": phone,
-          "email": email, // Ab Email Google Sheet tak jayega
+          "email": email,
           "selected_class": selectedClass,
         }),
       );
       
-      if (response.statusCode == 200 || response.statusCode == 302) {
-        final data = jsonDecode(response.body);
-        return data['subscription'] ?? 'FREE'; // Yahan se PRO wapas app me aayega
+      // 2. Sheet se 100% correct PRO status Direct GET request se mangwana
+      final response = await http.get(Uri.parse("$scriptUrl?sheet=User ID"));
+      if (response.statusCode == 200) {
+        final List<dynamic> rawData = jsonDecode(response.body);
+        for (var item in rawData) {
+          final sheetPhone = item['Phone']?.toString() ?? item['phone']?.toString() ?? '';
+          // Phone number match karke uska asli status return karna
+          if (sheetPhone == phone) {
+            return item['Subscription Status']?.toString().toUpperCase() ?? 'FREE';
+          }
+        }
       }
     } catch (e) {
       return 'FREE';

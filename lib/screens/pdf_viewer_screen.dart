@@ -23,6 +23,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   String _getCleanPreviewLink(String url) {
     String cleanUrl = url.trim();
     if (cleanUrl.contains('drive.google.com')) {
+      // Regex to extract exactly the 25+ character Google Drive File ID
       final regExp = RegExp(r'[-\w]{25,}');
       final match = regExp.firstMatch(cleanUrl);
       if (match != null) {
@@ -68,15 +69,26 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           widget.title.toUpperCase(),
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white, 
+            fontSize: 13, 
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
       ),
       body: Stack(
         children: [
+          // App ke andar WebView render karega (Bina Chrome ke)
           WebViewWidget(controller: _controller),
+          
+          // Jab tak PDF load ho raha hai, tab tak Neon Loader dikhega
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(color: neonCyan),
+              child: CircularProgressIndicator(
+                color: neonCyan,
+                strokeWidth: 3,
+              ),
             ),
         ],
       ),
