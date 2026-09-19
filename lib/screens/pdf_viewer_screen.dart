@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
@@ -17,43 +16,39 @@ class PdfViewerScreen extends StatefulWidget {
 }
 
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
-  final GlobalKey<SfPdfViewerState> _pdfViewerKey = GlobalKey();
+  late final WebViewController _controller;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _secureScreen();
-  }
-
-  // Screenshot aur Screen Recording Block Karne Ka Logic
-  Future<void> _secureScreen() async {
-    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
-  }
-
-  @override
-  void dispose() {
-    FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
-    super.dispose();
-  }
-
-  // Ye function Google Drive ke share link ko Direct Download/View link me badal deta hai
-  String _getDirectPdfLink(String url) {
-    if (url.contains('drive.google.com')) {
-      // Link se File ID nikalna
-      final RegExp regExp = RegExp(r'[-\w]{25,}');
-      final match = regExp.firstMatch(url);
-      if (match != null) {
-        final fileId = match.group(0);
-        // Direct PDF stream link return karna
-        return 'https://drive.google.com/uc?export=download&id=$fileId';
-      }
+    
+    // Wahi purana aur sabse best tarika: /view ko /preview me badalna
+    String finalUrl = widget.pdfUrl.trim();
+    if (finalUrl.contains('drive.google.com')) {
+      finalUrl = finalUrl.replaceAll('/view?usp=sharing', '/preview').replaceAll('/view', '/preview');
     }
-    return url;
+
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF070B14))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(finalUrl));
   }
 
   @override
   Widget build(BuildContext context) {
-    final directUrl = _getDirectPdfLink(widget.pdfUrl);
+    const neonCyan = Color(0xFF00F0FF);
 
     return Scaffold(
       backgroundColor: const Color(0xFF070B14),
@@ -63,22 +58,22 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           widget.title.toUpperCase(),
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white, 
+            fontSize: 13, 
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
       ),
-      // Ye widget directly PDF ko app ke andar show karega
-      body: SfPdfViewer.network(
-        directUrl,
-        key: _pdfViewerKey,
-        canShowScrollHead: false,
-        canShowScrollStatus: true,
-        enableDoubleTapZooming: true,
-        pageSpacing: 4,
-        onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Error loading PDF: Ensure link is 'Anyone with link'")),
-          );
-        },
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(color: neonCyan),
+            ),
+        ],
       ),
     );
   }
