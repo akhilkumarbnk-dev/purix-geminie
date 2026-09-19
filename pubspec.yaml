@@ -17,6 +17,7 @@ dependencies:
   url_launcher: ^6.3.2
   syncfusion_flutter_pdfviewer: ^34.2.8
   webview_flutter: ^4.14.1
+  flutter_windowmanager: ^0.2.0
 
 dev_dependencies:
   flutter_test:

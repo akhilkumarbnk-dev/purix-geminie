@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
@@ -16,30 +17,43 @@ class PdfViewerScreen extends StatefulWidget {
 }
 
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
-  late String _directPdfUrl;
+  final GlobalKey<SfPdfViewerState> _pdfViewerKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _directPdfUrl = _getDirectDownloadLink(widget.pdfUrl);
+    _secureScreen();
   }
 
-  String _getDirectDownloadLink(String url) {
-    String cleanUrl = url.trim();
-    if (cleanUrl.contains('drive.google.com')) {
-      final regExp = RegExp(r'[-\w]{25,}');
-      final match = regExp.firstMatch(cleanUrl);
+  // Screenshot aur Screen Recording Block Karne Ka Logic
+  Future<void> _secureScreen() async {
+    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+  }
+
+  @override
+  void dispose() {
+    FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+    super.dispose();
+  }
+
+  // Ye function Google Drive ke share link ko Direct Download/View link me badal deta hai
+  String _getDirectPdfLink(String url) {
+    if (url.contains('drive.google.com')) {
+      // Link se File ID nikalna
+      final RegExp regExp = RegExp(r'[-\w]{25,}');
+      final match = regExp.firstMatch(url);
       if (match != null) {
-        String fileId = match.group(0)!;
+        final fileId = match.group(0);
+        // Direct PDF stream link return karna
         return 'https://drive.google.com/uc?export=download&id=$fileId';
       }
     }
-    return cleanUrl;
+    return url;
   }
 
   @override
   Widget build(BuildContext context) {
-    const neonCyan = Color(0xFF00F0FF);
+    final directUrl = _getDirectPdfLink(widget.pdfUrl);
 
     return Scaffold(
       backgroundColor: const Color(0xFF070B14),
@@ -49,27 +63,20 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           widget.title.toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white, 
-            fontSize: 13, 
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
+          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
         ),
       ),
+      // Ye widget directly PDF ko app ke andar show karega
       body: SfPdfViewer.network(
-        _directPdfUrl,
+        directUrl,
+        key: _pdfViewerKey,
         canShowScrollHead: false,
         canShowScrollStatus: true,
         enableDoubleTapZooming: true,
-        pageLayoutMode: PdfPageLayoutMode.continuous,
-        onDocumentLoaded: (PdfDocumentLoadedDetails details) {
-          debugPrint('PDF Loaded Successfully!');
-        },
+        pageSpacing: 4,
         onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-          debugPrint('PDF Load Failed: ${details.error}');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to load PDF. Check Drive share link.')),
+            const SnackBar(content: Text("Error loading PDF: Ensure link is 'Anyone with link'")),
           );
         },
       ),
